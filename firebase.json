@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "rules": "firebase use --clear",
+    "indexes": "firestore.indexes.json"
+  }
+}

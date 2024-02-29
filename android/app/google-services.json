@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "75902046680",
+    "project_id": "github-9259e",
+    "storage_bucket": "github-9259e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75902046680:android:c400c77a65620054bee2ad",
+        "android_client_info": {
+          "package_name": "com.mayakuwano.githubapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHatuHnEo9uSiVvFFEC5uZ5SgW5fJNYYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
