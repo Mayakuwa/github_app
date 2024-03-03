@@ -18,31 +18,31 @@ const logger = require("firebase-functions/logger");
 //   response.send("Hello from Firebase!");
 // });
 
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
 admin.initializeApp();
 
-const firestore = admin.firestore();
+exports.toggleFavorite = functions.firestore
+  .document('favorites/{repositoryId}')
+  .onCreate((snapshot, context) => {
+    // いいねが追加されたドキュメントのデータを取得
+    const favorite = snapshot.data();
+    // いいねが追加されたドキュメントのIDを取得
+    const repositoryId = context.params.repositoryId;
 
-// Firestoreのドキュメントにいいねが追加されるとトリガーされる関数
-exports.updateLikeCount = functions.firestore
-    .document("likes/{likeId}")
-    .onCreate(async (snapshot, context) => {
-      // いいねが追加されたドキュメントのIDを取得
-      const likeId = context.params.likeId;
+    // いいねの状態を取得
+    const isFavorite = favorite.isFavorite;
 
-      // いいねが追加されたドキュメントのデータを取得
-      const likeData = snapshot.data();
-
-      // いいねが追加された対象のドキュメントを取得
-      const documentRef = firestore.doc(`documents/${likeData.documentId}`);
-
-      try {
-        // いいねが追加された対象のドキュメントのカウントをインクリメント
-        await documentRef.update({likeCount: admin.firestore.FieldValue.increment(1)});
-        console.log("Like count updated successfully!");
-      } catch (error) {
-        console.error("Error updating like count:", error);
-      }
+    // Firestoreのレポジトリドキュメントを更新
+    try {
+        admin.firestore().collection('repositories').doc(repositoryId).update({
+        isFavorite: isFavorite
     });
+    console.log('update success!');
+    } catch(error) {
+        console.error("Error updating like count:", error);
+    }
+    // return admin.firestore().collection('repositories').doc(repositoryId).update({
+    //   isFavorite: isFavorite
+    // });
+  });

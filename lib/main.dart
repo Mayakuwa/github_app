@@ -34,26 +34,34 @@ class _MyHomePageState extends State<MyHomePage> {
   List<dynamic> _repositories = [];
 
   // Firestoreの参照
-  final CollectionReference _favoritesCollection =
-      FirebaseFirestore.instance.collection('favorites');
+  final CollectionReference _likesCollection =
+      FirebaseFirestore.instance.collection('likes');
 
   // お気に入りのトグル処理
-  Future<void> _toggleFavorite(String repositoryId) async {
-    DocumentSnapshot favoriteDoc =
-        await _favoritesCollection.doc(repositoryId).get();
+  Future<void> _toggleFavorite(String repositoryId, int index) async {
+    CollectionReference favoritesCollection =
+        FirebaseFirestore.instance.collection('favorites');
+    DocumentReference favoriteRef = favoritesCollection.doc(repositoryId);
+    DocumentSnapshot favoriteDoc = await favoriteRef.get();
+
     if (favoriteDoc.exists) {
       // お気に入りがすでに存在する場合、削除する
-      await _favoritesCollection.doc(repositoryId).delete();
+      await favoriteRef.delete();
     } else {
       // お気に入りが存在しない場合、追加する
-      await _favoritesCollection.doc(repositoryId).set({'isFavorite': true});
+      await favoriteRef.set({'isFavorite': true});
     }
+
+    // お気に入り状態を更新する
+    setState(() {
+      _repositories[index]['isFavorite'] = !favoriteDoc.exists;
+    });
   }
 
   // お気に入り状態をチェックするメソッド
   Future<bool> _isFavorite(String repositoryId) async {
     DocumentSnapshot favoriteDoc =
-        await _favoritesCollection.doc(repositoryId).get();
+        await _likesCollection.doc(repositoryId).get();
     return favoriteDoc.exists;
   }
 
@@ -101,30 +109,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       border: Border.all(color: Colors.grey),
                     ),
                     child: ListTile(
-                      leading: FutureBuilder<bool>(
-                        future:
-                            _isFavorite(_repositories[index]['id'].toString()),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return CircularProgressIndicator();
-                          }
-                          return IconButton(
-                            icon: Icon(
-                              snapshot.hasData && snapshot.data != null
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: snapshot.hasData && snapshot.data != null
-                                  ? Colors.red
-                                  : Colors.grey,
-                            ),
-                            onPressed: () {
-                              _toggleFavorite(
-                                  _repositories[index]['id'].toString());
-                            },
-                          );
-                        },
-                      ),
                       title: Text(
                         _repositories[index]['full_name'],
                         style: TextStyle(
@@ -138,18 +122,19 @@ class _MyHomePageState extends State<MyHomePage> {
                           fontSize: 14,
                         ),
                       ),
-                      trailing: Text(
-                        '⭐️: ${_repositories[index]['stargazers_count']}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue,
-                        ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.favorite),
+                        color: (_repositories[index]['isFavorite'] ?? false)
+                            ? Colors.red
+                            : Colors.grey,
+                        onPressed: () async {
+                          print('Heart taped!');
+                          await _toggleFavorite(
+                              _repositories[index]['id'].toString(), index);
+                        },
                       ),
                       onTap: () {
-                        // FirebaseFirestore.instance
-                        //     .collection('users')
-                        //     .doc('user1')
-                        //     .set({'name': 'John', 'age': 30});
+                        // レポジトリ詳細ページに移動する処理
                         Navigator.push(
                           context,
                           MaterialPageRoute(
