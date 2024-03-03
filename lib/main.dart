@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'RepositoryDetailPage.dart';
 import 'package:firebase_core/firebase_core.dart';
-// テスト
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
@@ -33,6 +32,30 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _repositories = [];
+
+  // Firestoreの参照
+  final CollectionReference _favoritesCollection =
+      FirebaseFirestore.instance.collection('favorites');
+
+  // お気に入りのトグル処理
+  Future<void> _toggleFavorite(String repositoryId) async {
+    DocumentSnapshot favoriteDoc =
+        await _favoritesCollection.doc(repositoryId).get();
+    if (favoriteDoc.exists) {
+      // お気に入りがすでに存在する場合、削除する
+      await _favoritesCollection.doc(repositoryId).delete();
+    } else {
+      // お気に入りが存在しない場合、追加する
+      await _favoritesCollection.doc(repositoryId).set({'isFavorite': true});
+    }
+  }
+
+  // お気に入り状態をチェックするメソッド
+  Future<bool> _isFavorite(String repositoryId) async {
+    DocumentSnapshot favoriteDoc =
+        await _favoritesCollection.doc(repositoryId).get();
+    return favoriteDoc.exists;
+  }
 
   Future<void> _searchRepositories(String query) async {
     final String url = 'https://api.github.com/search/repositories?q=$query';
@@ -78,6 +101,30 @@ class _MyHomePageState extends State<MyHomePage> {
                       border: Border.all(color: Colors.grey),
                     ),
                     child: ListTile(
+                      leading: FutureBuilder<bool>(
+                        future:
+                            _isFavorite(_repositories[index]['id'].toString()),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator();
+                          }
+                          return IconButton(
+                            icon: Icon(
+                              snapshot.hasData && snapshot.data != null
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: snapshot.hasData && snapshot.data != null
+                                  ? Colors.red
+                                  : Colors.grey,
+                            ),
+                            onPressed: () {
+                              _toggleFavorite(
+                                  _repositories[index]['id'].toString());
+                            },
+                          );
+                        },
+                      ),
                       title: Text(
                         _repositories[index]['full_name'],
                         style: TextStyle(
@@ -99,10 +146,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       onTap: () {
-                        FirebaseFirestore.instance
-                            .collection('users')
-                            .doc('user1')
-                            .set({'name': 'John', 'age': 30});
+                        // FirebaseFirestore.instance
+                        //     .collection('users')
+                        //     .doc('user1')
+                        //     .set({'name': 'John', 'age': 30});
                         Navigator.push(
                           context,
                           MaterialPageRoute(

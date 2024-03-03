@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "github-9259e"
+  },
   "targets": {},
   "etags": {}
 }
