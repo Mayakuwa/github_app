@@ -32,15 +32,19 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _repositories = [];
+  late String documenyId;
+  List<String> documentIds = [];
+  CollectionReference favoritesCollection =
+      FirebaseFirestore.instance.collection('favorites');
 
-  // Firestoreの参照
-  final CollectionReference _likesCollection =
-      FirebaseFirestore.instance.collection('likes');
+  @override
+  void initState() {
+    super.initState();
+    // initState内で非同期処理を実行
+  }
 
   // お気に入りのトグル処理
   Future<void> _toggleFavorite(String repositoryId, int index) async {
-    CollectionReference favoritesCollection =
-        FirebaseFirestore.instance.collection('favorites');
     DocumentReference favoriteRef = favoritesCollection.doc(repositoryId);
     DocumentSnapshot favoriteDoc = await favoriteRef.get();
 
@@ -49,7 +53,9 @@ class _MyHomePageState extends State<MyHomePage> {
       await favoriteRef.delete();
     } else {
       // お気に入りが存在しない場合、追加する
-      await favoriteRef.set({'isFavorite': true});
+      await favoriteRef.set({
+        'isFavorite': true,
+      });
     }
 
     // お気に入り状態を更新する
@@ -58,11 +64,26 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  // お気に入り状態をチェックするメソッド
-  Future<bool> _isFavorite(String repositoryId) async {
-    DocumentSnapshot favoriteDoc =
-        await _likesCollection.doc(repositoryId).get();
-    return favoriteDoc.exists;
+  Future<void> _hasFavoriteData() async {
+    setState(() {
+      documentIds = [];
+    });
+
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('favorites').get();
+      querySnapshot.docs.forEach((doc) {
+        if (_repositories.isNotEmpty) {
+          _repositories.forEach((element) {
+            if (doc.id == element['id'].toString()) {
+              documentIds.add(doc.id);
+            }
+          });
+        }
+      });
+    } catch (e) {
+      print('Error getting document IDs: $e');
+    }
   }
 
   Future<void> _searchRepositories(String query) async {
@@ -72,6 +93,28 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _repositories = data['items'];
     });
+
+    setState(() {
+      documentIds = [];
+    });
+
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('favorites').get();
+      querySnapshot.docs.forEach((doc) {
+        if (_repositories.isNotEmpty) {
+          _repositories.forEach((element) {
+            if (doc.id == element['id'].toString()) {
+              setState(() {
+                documentIds.add(doc.id);
+              });
+            }
+          });
+        }
+      });
+    } catch (e) {
+      print('Error getting document IDs: $e');
+    }
   }
 
   @override
@@ -90,8 +133,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 labelText: 'Enter repository name',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
-                  onPressed: () {
-                    _searchRepositories(_searchController.text);
+                  onPressed: () async {
+                    await _searchRepositories(_searchController.text);
                   },
                 ),
               ),
@@ -101,6 +144,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: ListView.builder(
               itemCount: _repositories.length,
               itemBuilder: (BuildContext context, int index) {
+                print(
+                    'Expand + ${documentIds.contains(_repositories[0]['id'].toString())}');
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
@@ -110,7 +155,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     child: ListTile(
                       title: Text(
-                        _repositories[index]['full_name'],
+                        _repositories[index]['full_name'] +
+                            _repositories[index]['id'].toString(),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -122,13 +168,44 @@ class _MyHomePageState extends State<MyHomePage> {
                           fontSize: 14,
                         ),
                       ),
+                      // trailing: FutureBuilder(
+                      //   future: _hasFavoriteData(), // 非同期処理を行う関数
+                      //   builder: (context, snapshot) {
+                      //     if (snapshot.connectionState ==
+                      //         ConnectionState.waiting) {
+                      //       // データ取得中はローディングを表示
+                      //       return CircularProgressIndicator();
+                      //     } else if (snapshot.hasError) {
+                      //       // エラーが発生した場合はエラーメッセージを表示
+                      //       return Text('Error: ${snapshot.error}');
+                      //     } else {
+                      //       // データが取得された場合はアイコンを表示
+                      //       return IconButton(
+                      //         icon: Icon(Icons.favorite),
+                      //         color: documenyId ==
+                      //                 _repositories[index]['id'].toString()
+                      //             ? Colors.red
+                      //             : Colors.grey,
+                      //         onPressed: () async {
+                      //           await _toggleFavorite(
+                      //               _repositories[index]['id'].toString(),
+                      //               index);
+                      //         },
+                      //       );
+                      //     }
+                      //   },
+                      // ),
                       trailing: IconButton(
                         icon: Icon(Icons.favorite),
-                        color: (_repositories[index]['isFavorite'] ?? false)
+                        color: (_repositories[index]['isFavorite'] ??
+                                false ||
+                                    documentIds.contains(
+                                        _repositories[index]['id'].toString()))
                             ? Colors.red
                             : Colors.grey,
                         onPressed: () async {
-                          print('Heart taped!');
+                          // await _hasFavoriteData(
+                          //     _repositories[index]['id'].toString());
                           await _toggleFavorite(
                               _repositories[index]['id'].toString(), index);
                         },
